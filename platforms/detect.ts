@@ -4,6 +4,6 @@ export async function platform() {
     case "linux":
       return await import("./x11/api.ts");
     default:
-      throw new Error("Unsupported platform", os);
+      throw new Error("Unsupported platform " + os);
   }
 }
