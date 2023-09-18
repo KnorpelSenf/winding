@@ -30,6 +30,8 @@ export async function platform(): Promise<Library> {
   switch (os) {
     case "linux":
       return await import("./x11/api.ts");
+    case "windows":
+      return await import("./win32/api.ts");
     default:
       throw new Error("Unsupported platform " + os);
   }
