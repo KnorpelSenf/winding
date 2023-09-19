@@ -1,19 +1,13 @@
-import { openWindow } from "./mod.ts";
+import { load } from "./mod.ts";
 
-const window = openWindow(10, 10, 100, 100);
-window.display();
-console.log(window.id);
+const library = load();
 
-const inputs = window.getInput(["keypress", "keyrelease"]);
+const window = library.openWindow();
 
-let running = true;
-while (running) {
-  while (inputs.hasNext()) {
-    const event = inputs.next()!;
-    console.log(event.type, event?.keycode);
-    if (event.keycode === 24 /* Q */) {
-      running = false;
-      break;
-    }
-  }
+while (true) {
+  const e = window.event();
+  if (e) console.log(e);
 }
+window.close();
+
+library.close();

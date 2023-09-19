@@ -5,7 +5,7 @@ import {
   type WindowEvent,
   WindowEventType,
   WindowMoveEvent,
-} from "../../v2.ts";
+} from "../types.ts";
 
 const kernel32functions = {
   GetModuleHandleW: { parameters: ["pointer"], result: "usize" },

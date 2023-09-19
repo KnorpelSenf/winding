@@ -5,7 +5,7 @@ import {
   type WindowEvent,
   WindowEventType,
   WindowMoveEvent,
-} from "../../v2.ts";
+} from "../types.ts";
 
 const x11functions = {
   XOpenDisplay: { parameters: ["usize"], result: "pointer" },
