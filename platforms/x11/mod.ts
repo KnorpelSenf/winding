@@ -1,4 +1,11 @@
-import type { Library, LoadLibrary, Window, WindowEvent } from "../../v2.ts";
+import {
+  type Library,
+  type LoadLibrary,
+  type Window,
+  type WindowEvent,
+  WindowEventType,
+  WindowMoveEvent,
+} from "../../v2.ts";
 
 const x11functions = {
   XOpenDisplay: { parameters: ["usize"], result: "pointer" },
@@ -54,12 +61,12 @@ enum XEvMask {
 }
 
 const windows = new Map<
-  number | bigint,
+  bigint,
   { event: WindowEvent | null; window: X11Window }
 >();
 
 class X11Window implements Window {
-  #window: number | bigint;
+  #window: bigint;
   constructor(readonly lib: X11Library) {
     const view = new Deno.UnsafePointerView(lib.screen);
     const parent = view.getBigUint64(16);
@@ -86,8 +93,8 @@ class X11Window implements Window {
         XEvMask.StructureNotify | XEvMask.PointerMotion,
     );
     lib.X11.symbols.XMapWindow(lib.display, window);
-    this.#window = window;
-    windows.set(window, { event: null, window: this });
+    this.#window = BigInt(window);
+    windows.set(this.#window, { event: null, window: this });
   }
   #event = new ArrayBuffer(192);
   event(): WindowEvent | null {
@@ -97,8 +104,20 @@ class X11Window implements Window {
       Deno.UnsafePointer.of(this.#event),
     );
     const view = new DataView(this.#event);
-    // TODO: events
-    return null;
+    const window = view.getBigUint64(32, true);
+    const mapEntry = windows.get(window);
+    if (mapEntry == null) return null;
+
+    switch (view.getInt32(0, true)) {
+      case 6: {
+        const event = (mapEntry.event = mapEntry.event ??
+          { type: WindowEventType.MouseMove, x: 0, y: 0 }) as WindowMoveEvent;
+        event.x = view.getInt32(64, true);
+        event.y = view.getInt32(68, true);
+        break;
+      }
+    }
+    return window === this.#window ? mapEntry.event : null;
   }
   close(): void {
     windows.delete(this.#window);

@@ -1,4 +1,4 @@
-import { load } from "./platforms/win32/mod.ts";
+import { load } from "./mod.ts";
 
 const library = load();
 
