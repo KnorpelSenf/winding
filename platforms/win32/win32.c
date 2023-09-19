@@ -3,24 +3,15 @@
 #include <stdio.h>
 #include <windows.h>
 
+extern void printWindowClass(WNDCLASSEXW *const);
+
 LRESULT wndProc(HWND hWnd, uint32_t uMsg, size_t wParam, ssize_t lParam) {
   printf("CALLED\n");
   return DefWindowProcW(hWnd, uMsg, wParam, lParam);
 }
 
 int main(void) {
-  //   printf("sizeof(WNDCLASSEXW) : %d\n", sizeof(WNDCLASSEXW));
-  //   printf("cbSize %d\n", offsetof(WNDCLASSEXW, cbSize));
-  //   printf("style %d\n", offsetof(WNDCLASSEXW, style));
-  //   printf("lpfnWndProc %d\n", offsetof(WNDCLASSEXW, lpfnWndProc));
-  //   printf("cbClsExtra %d\n", offsetof(WNDCLASSEXW, cbClsExtra));
-  //   printf("cbWndExtra %d\n", offsetof(WNDCLASSEXW, cbWndExtra));
-  //   printf("hInstance %d\n", offsetof(WNDCLASSEXW, hInstance));
-  //   printf("hIcon %d\n", offsetof(WNDCLASSEXW, hIcon));
-  //   printf("hCursor %d\n", offsetof(WNDCLASSEXW, hCursor));
-  //   printf("hbrBackground %d\n", offsetof(WNDCLASSEXW, hbrBackground));
-  //   printf("lpszMenuName %d\n", offsetof(WNDCLASSEXW, lpszMenuName));
-  //   printf("hIconSm %d\n", offsetof(WNDCLASSEXW, hIconSm));
+  printf("sizeof(MSG) %d\n", sizeof(MSG));
   WNDCLASSEXW wndClass = {
       .cbSize = sizeof(WNDCLASSEXW),
       .style = CS_VREDRAW | CS_HREDRAW | CS_OWNDC,
@@ -35,12 +26,7 @@ int main(void) {
       .lpszClassName = L"ThomasWindowClass",
       .hIconSm = 0,
   };
-  uint8_t *ptr = (uint8_t *)&wndClass;
-  printf("%d", ptr[0]);
-  for (int i = 1; i < sizeof(WNDCLASSEXW); i++) {
-    printf(", %d", ptr[i]);
-  }
-  exit(0);
+  printWindowClass(&wndClass);
   if (RegisterClassExW(&wndClass) == 0) {
     printf("Failed to register class\n");
   }
