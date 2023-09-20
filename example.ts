@@ -5,7 +5,7 @@ const library = load();
 const window = library.openWindow();
 
 while (true) {
-  const e = window.event();
+  const e = library.event();
   if (e) console.log(e);
 }
 window.close();

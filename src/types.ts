@@ -1,4 +1,4 @@
-export enum WindowEventType {
+export enum UIEventType {
   KeyDown,
   KeyUp,
   MouseDown,
@@ -12,29 +12,31 @@ export enum MouseButton {
   Right,
 }
 
-export interface WindowKeyEvent {
-  type: WindowEventType.KeyDown | WindowEventType.KeyUp;
+export interface KeyEvent {
+  type: UIEventType.KeyDown | UIEventType.KeyUp;
   key: string;
 }
-export interface WindowButtonEvent {
-  type: WindowEventType.MouseDown | WindowEventType.MouseUp;
+export interface ButtonEvent {
+  type: UIEventType.MouseDown | UIEventType.MouseUp;
   button: MouseButton;
 }
-export interface WindowMoveEvent {
-  type: WindowEventType.MouseMove;
+export interface MoveEvent {
+  type: UIEventType.MouseMove;
   x: number;
   y: number;
 }
 
-export type WindowEvent = WindowKeyEvent | WindowButtonEvent | WindowMoveEvent;
+export type UIEvent =
+  & { window: Window | null }
+  & (KeyEvent | ButtonEvent | MoveEvent);
 
 export interface Window {
-  event(): WindowEvent | null;
   close(): void;
 }
 
 export interface Library {
   openWindow(): Window;
+  event(): UIEvent | null;
   close(): void;
 }
 

@@ -1,10 +1,9 @@
 import {
   type Library,
   type LoadLibrary,
+  type UIEvent,
+  UIEventType,
   type Window,
-  type WindowEvent,
-  WindowEventType,
-  WindowMoveEvent,
 } from "../types.ts";
 
 const kernel32functions = {
@@ -57,11 +56,6 @@ const user32functions = {
   },
 } as const;
 
-const windows = new Map<
-  number | bigint,
-  { event: WindowEvent | null; window: Win32Window }
->();
-
 class Win32Window implements Window {
   readonly window: Deno.PointerObject;
   constructor(readonly lib: Win32Library, classNameBuf: ArrayBuffer) {
@@ -81,26 +75,10 @@ class Win32Window implements Window {
     );
     if (window == null) throw new Error(lib.getLastError());
     this.window = window;
-    windows.set(Deno.UnsafePointer.value(window), {
-      event: null,
-      window: this,
-    });
-  }
-  #msg = new ArrayBuffer(48);
-  event(): WindowEvent | null {
-    const ptr = Deno.UnsafePointer.of(this.#msg);
-    if (this.lib.user32.symbols.PeekMessageW(ptr, this.window, 0, 0, 1)) {
-      this.lib.user32.symbols.TranslateMessage(
-        Deno.UnsafePointer.of(this.#msg),
-      );
-      this.lib.user32.symbols.DispatchMessageW(
-        Deno.UnsafePointer.of(this.#msg),
-      );
-    }
-    return windows.get(Deno.UnsafePointer.value(this.window))?.event ?? null;
+    lib.windows.set(BigInt(Deno.UnsafePointer.value(window)), this);
   }
   close(): void {
-    windows.delete(Deno.UnsafePointer.value(this.window));
+    this.lib.windows.delete(BigInt(Deno.UnsafePointer.value(this.window)));
   }
 }
 
@@ -122,6 +100,7 @@ class Win32Library implements Library {
     parameters: ["pointer", "u32", "usize", "usize"];
     result: "usize";
   }>;
+  #event: UIEvent | null = null;
   constructor() {
     this.kernel32 = Deno.dlopen("kernel32", kernel32functions);
     this.user32 = Deno.dlopen("user32", user32functions);
@@ -142,17 +121,15 @@ class Win32Library implements Library {
       parameters: ["pointer", "u32", "usize", "usize"],
       result: "usize",
     }, (hWnd, uMsg, wParam, lParam) => {
-      const window = windows.get(Deno.UnsafePointer.value(hWnd));
-      if (!window) {
-        return this.user32.symbols.DefWindowProcW(hWnd, uMsg, wParam, lParam);
-      }
       switch (uMsg) {
         case 0x200: {
-          const event = (window.event = window.event ??
-            { type: WindowEventType.MouseMove, x: 0, y: 0 }) as WindowMoveEvent;
-          event.type = WindowEventType.MouseMove;
-          event.x = Number(BigInt(lParam) & 0xFFFFn);
-          event.y = Number((BigInt(lParam) & 0xFFFF0000n) >> 16n);
+          this.#event = {
+            type: UIEventType.MouseMove,
+            x: Number(BigInt(lParam) & 0xFFFFn),
+            y: Number((BigInt(lParam) & 0xFFFF0000n) >> 16n),
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))) ??
+              null,
+          };
           break;
         }
       }
@@ -213,8 +190,24 @@ class Win32Library implements Library {
     const wndClass = this.user32.symbols.RegisterClassExW(this.#wndClass);
     if (wndClass == 0) throw new Error(this.getLastError());
   }
+  readonly windows = new Map<bigint, Win32Window>();
   openWindow(): Win32Window {
     return new Win32Window(this, this.#classNameBuffer);
+  }
+  #msg = new ArrayBuffer(48);
+  event(): UIEvent | null {
+    const ptr = Deno.UnsafePointer.of(this.#msg);
+    if (this.user32.symbols.PeekMessageW(ptr, null, 0, 0, 1)) {
+      this.user32.symbols.TranslateMessage(
+        Deno.UnsafePointer.of(this.#msg),
+      );
+      this.user32.symbols.DispatchMessageW(
+        Deno.UnsafePointer.of(this.#msg),
+      );
+    }
+    const event = this.#event;
+    if (event != null) this.#event = null;
+    return event;
   }
   #lastErrorBuffer = new ArrayBuffer(4096);
   getLastError() {

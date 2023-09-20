@@ -1,10 +1,9 @@
 import {
   type Library,
   type LoadLibrary,
+  type UIEvent,
+  UIEventType,
   type Window,
-  type WindowEvent,
-  WindowEventType,
-  WindowMoveEvent,
 } from "../types.ts";
 
 const x11functions = {
@@ -60,13 +59,8 @@ enum XEvMask {
   OwnerGrabButton = 1 << 24,
 }
 
-const windows = new Map<
-  bigint,
-  { event: WindowEvent | null; window: X11Window }
->();
-
 class X11Window implements Window {
-  #window: bigint;
+  readonly id: bigint;
   constructor(readonly lib: X11Library) {
     const view = new Deno.UnsafePointerView(lib.screen);
     const parent = view.getBigUint64(16);
@@ -93,34 +87,11 @@ class X11Window implements Window {
         XEvMask.StructureNotify | XEvMask.PointerMotion,
     );
     lib.X11.symbols.XMapWindow(lib.display, window);
-    this.#window = BigInt(window);
-    windows.set(this.#window, { event: null, window: this });
-  }
-  #event = new ArrayBuffer(192);
-  event(): WindowEvent | null {
-    if (this.lib.X11.symbols.XPending(this.lib.display) == 0) return null;
-    this.lib.X11.symbols.XNextEvent(
-      this.lib.display,
-      Deno.UnsafePointer.of(this.#event),
-    );
-    const view = new DataView(this.#event);
-    const window = view.getBigUint64(32, true);
-    const mapEntry = windows.get(window);
-    if (mapEntry == null) return null;
-
-    switch (view.getInt32(0, true)) {
-      case 6: {
-        const event = (mapEntry.event = mapEntry.event ??
-          { type: WindowEventType.MouseMove, x: 0, y: 0 }) as WindowMoveEvent;
-        event.x = view.getInt32(64, true);
-        event.y = view.getInt32(68, true);
-        break;
-      }
-    }
-    return window === this.#window ? mapEntry.event : null;
+    this.id = BigInt(window);
+    this.lib.windows.set(this.id, this);
   }
   close(): void {
-    windows.delete(this.#window);
+    this.lib.windows.delete(this.id);
   }
 }
 
@@ -137,8 +108,30 @@ class X11Library implements Library {
     if (screen == null) throw new Error("Failed to get default screen");
     this.screen = screen;
   }
+  readonly windows = new Map<bigint, X11Window>();
   openWindow(): X11Window {
     return new X11Window(this);
+  }
+  #event = new ArrayBuffer(192);
+  event(): UIEvent | null {
+    if (this.X11.symbols.XPending(this.display) == 0) return null;
+    this.X11.symbols.XNextEvent(
+      this.display,
+      Deno.UnsafePointer.of(this.#event),
+    );
+    const view = new DataView(this.#event);
+    const windowId = view.getBigUint64(32, true);
+    switch (view.getInt32(0, true)) {
+      case 6:
+        return {
+          type: UIEventType.MouseMove,
+          x: view.getInt32(64, true),
+          y: view.getInt32(68, true),
+          window: this.windows.get(windowId) ?? null,
+        };
+    }
+
+    return null;
   }
   close(): void {
   }
