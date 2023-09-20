@@ -57,7 +57,7 @@ const user32functions = {
 } as const;
 
 class Win32Window implements Window {
-  readonly window: Deno.PointerObject;
+  readonly id: bigint;
   constructor(readonly lib: Win32Library, classNameBuf: ArrayBuffer) {
     const window = lib.user32.symbols.CreateWindowExW(
       0,
@@ -74,11 +74,11 @@ class Win32Window implements Window {
       0,
     );
     if (window == null) throw new Error(lib.getLastError());
-    this.window = window;
-    lib.windows.set(BigInt(Deno.UnsafePointer.value(window)), this);
+    this.id = BigInt(Deno.UnsafePointer.value(window));
+    lib.windows.set(this.id, this);
   }
   close(): void {
-    this.lib.windows.delete(BigInt(Deno.UnsafePointer.value(this.window)));
+    this.lib.windows.delete(this.id);
   }
 }
 
