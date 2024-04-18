@@ -31,10 +31,12 @@ export type UIEvent =
   & (KeyEvent | ButtonEvent | MoveEvent);
 
 export interface Window {
+  [Symbol.dispose]: () => void;
   close(): void;
 }
 
 export interface Library {
+  [Symbol.dispose]: () => void;
   openWindow(): Window;
   event(): UIEvent | null;
   close(): void;

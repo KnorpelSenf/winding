@@ -15,14 +15,23 @@ Create `app.ts` with the following content.
 
 ```ts
 // app.ts
-import { openWindow } from "https://deno.land/x/winding/mod.ts";
+import { load } from "https://deno.land/x/winding/mod.ts";
 
-const window = openWindow();
-window.display();
+using library = load();
+using _window = library.openWindow();
+
+// Get the event at least once to start.
+// In your app you would introduce an event loop around this.
+const _event = library.event();
+
+setTimeout(() => {}, 5000);
+
 ```
 
 Run the file with FFI bindings allowed.
 
 ```sh
-deno run --unstable --allow-ffi app.ts
+deno run --unstable-ffi --allow-ffi app.ts 
 ```
+
+Also See [this example](./example.ts).
