@@ -1,13 +1,25 @@
 import { load } from "./mod.ts";
 
-const library = load();
+import { UIEventType } from "./src/types.ts";
 
-const window = library.openWindow();
+using library = load();
+using _window = library.openWindow();
 
 while (true) {
-  const e = library.event();
-  if (e) console.log(e);
-}
-window.close();
+  const event = library.event();
 
-library.close();
+  if (event) console.log(event);
+
+  if (event?.type == UIEventType.MouseMove) {
+    console.log(`mousemove [ X: ${pad(event.x)} | Y: ${pad(event.y)} ]`);
+
+    // Quitting the app when the mouse enters the lower right quadrant, because why not
+    if (event.x > 50 && event.y > 50) {
+      break;
+    }
+  }
+}
+
+function pad(n: number): string {
+  return String(n).padStart(4, "0")
+}

@@ -90,6 +90,9 @@ class X11Window implements Window {
     this.id = BigInt(window);
     this.lib.windows.set(this.id, this);
   }
+  [Symbol.dispose](): void {
+    this.close();
+  }
   close(): void {
     this.lib.windows.delete(this.id);
   }
@@ -99,6 +102,7 @@ class X11Library implements Library {
   readonly X11: Deno.DynamicLibrary<typeof x11functions>;
   readonly display: Deno.PointerObject;
   readonly screen: Deno.PointerObject;
+  readonly windows = new Map<bigint, X11Window>();
   constructor() {
     this.X11 = Deno.dlopen("libX11.so", x11functions);
     const display = this.X11.symbols.XOpenDisplay(0);
@@ -108,7 +112,9 @@ class X11Library implements Library {
     if (screen == null) throw new Error("Failed to get default screen");
     this.screen = screen;
   }
-  readonly windows = new Map<bigint, X11Window>();
+  [Symbol.dispose](): void {
+    this.close();
+  }
   openWindow(): X11Window {
     return new X11Window(this);
   }
@@ -134,6 +140,7 @@ class X11Library implements Library {
     return null;
   }
   close(): void {
+    this.X11.close();
   }
 }
 
