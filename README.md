@@ -31,7 +31,12 @@ setTimeout(() => {}, 5000);
 Run the file with FFI bindings allowed.
 
 ```sh
-deno run --unstable-ffi --allow-ffi app.ts
+deno run --unstable-ffi --allow-ffi --unstable-webgpu app.ts
 ```
 
 Also See [this example](./example.ts).
+
+Run with:
+```sh
+deno run --unstable-ffi --allow-ffi --unstable-webgpu example.ts
+```

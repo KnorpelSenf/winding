@@ -8,6 +8,7 @@ import {
 
 const x11functions = {
   XOpenDisplay: { parameters: ["usize"], result: "pointer" },
+  XCreateGC: { parameters: ["pointer", "usize", "i32", "i32"], result: "pointer" },
   XCloseDisplay: { parameters: ["pointer"], result: "void" },
   XDefaultScreenOfDisplay: { parameters: ["pointer"], result: "pointer" },
   XMapWindow: { parameters: ["pointer", "usize"], result: "void" },
@@ -103,6 +104,7 @@ class X11Library implements Library {
   readonly display: Deno.PointerObject;
   readonly screen: Deno.PointerObject;
   readonly windows = new Map<bigint, X11Window>();
+  readonly surface: Deno.UnsafeWindowSurface;
   constructor() {
     this.X11 = Deno.dlopen("libX11.so", x11functions);
     const display = this.X11.symbols.XOpenDisplay(0);
@@ -111,13 +113,24 @@ class X11Library implements Library {
     const screen = this.X11.symbols.XDefaultScreenOfDisplay(display);
     if (screen == null) throw new Error("Failed to get default screen");
     this.screen = screen;
+    this.surface = new Deno.UnsafeWindowSurface("x11", screen, display);
   }
   [Symbol.dispose](): void {
     this.close();
   }
+
+  getWebGPUContext(): GPUCanvasContext {
+    return this.surface.getContext("webgpu");
+  }
+
+  getSurface() {
+    return this.surface;
+  }
+
   openWindow(): X11Window {
     return new X11Window(this);
   }
+
   #event = new ArrayBuffer(192);
   event(): UIEvent | null {
     if (this.X11.symbols.XPending(this.display) == 0) return null;

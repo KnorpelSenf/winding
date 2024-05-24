@@ -40,6 +40,8 @@ export interface Library {
   openWindow(): Window;
   event(): UIEvent | null;
   close(): void;
+  getWebGPUContext(): GPUCanvasContext;
+  getSurface(): Deno.UnsafeWindowSurface
 }
 
 export type LoadLibrary = () => Library;
