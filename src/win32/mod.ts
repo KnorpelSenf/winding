@@ -77,6 +77,9 @@ class Win32Window implements Window {
     this.id = BigInt(Deno.UnsafePointer.value(window));
     lib.windows.set(this.id, this);
   }
+  [Symbol.dispose]() {
+    this.close();
+  }
   close(): void {
     this.lib.windows.delete(this.id);
   }
@@ -232,6 +235,9 @@ class Win32Library implements Library {
       s += String.fromCharCode(bufU16[i]);
     }
     return s.trim() + " (" + code + ")";
+  }
+  [Symbol.dispose]() {
+    this.close();
   }
   close(): void {
     this.#wndProc.close();
