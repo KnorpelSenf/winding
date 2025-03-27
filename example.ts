@@ -13,7 +13,7 @@ while (true) {
   if (event?.type == UIEventType.MouseMove) {
     console.log(`mousemove [ X: ${pad(event.x)} | Y: ${pad(event.y)} ]`);
 
-    // Quitting the app when the mouse enters the lower right quadrant, because why not
+    // Quitting the app when the mouse exits the top-left quadrant, because why not
     if (event.x > 50 && event.y > 50) {
       break;
     }
