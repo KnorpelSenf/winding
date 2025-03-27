@@ -6,8 +6,9 @@ export interface WindowEvent {
   window?: Window;
 }
 export interface KeyEvent extends WindowEvent {
-  type: "keydown" | "keyup";
+  type: "keydown" | "keyup" | "keychar";
   keycode: number;
+  key?: string;
 }
 export interface ButtonEvent extends WindowEvent {
   type: "mousedown" | "mouseup";

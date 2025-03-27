@@ -123,12 +123,44 @@ class Win32Library implements Library {
       parameters: ["pointer", "u32", "usize", "usize"],
       result: "usize",
     }, (hWnd, uMsg, wParam, lParam) => {
+      // TODO see WinUser.h for uMsg values
       switch (uMsg) {
         case 0x200: {
           this.#event = {
             type: "mousemove",
             x: Number(BigInt(lParam) & 0xFFFFn),
             y: Number((BigInt(lParam) & 0xFFFF0000n) >> 16n),
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        // TODO case 0x0104:
+        /* fall-through for SYSKEYDOWN */
+        case 0x0100: {
+          this.#event = {
+            type: "keydown",
+            keycode: Number(wParam),
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        // TODO case 0x0105:
+        /* fall-through for SYSKEYUP */
+        case 0x0101: {
+          this.#event = {
+            type: "keyup",
+            keycode: Number(wParam),
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        // TODO case 0x0106:
+        /* fall-through for SYSCHAR */
+        case 0x0102: {
+          this.#event = {
+            type: "keychar",
+            key: String.fromCodePoint(Number(wParam)),
+            keycode: Number(wParam),
             window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
           };
           break;

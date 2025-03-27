@@ -1,14 +1,15 @@
 import { load } from "./mod.ts";
 
-import { UIEventType } from "./src/types.ts";
-
 using library = load();
 using _window = library.openWindow();
 
 while (true) {
   const event = library.event();
 
-  if (event) console.log(event);
+  if (event) {
+    const { window: _window, ...restEvent } = event
+    console.log(restEvent);
+  }
 
   if (event?.type == "mousemove") {
     console.log(`mousemove [ X: ${pad(event.x)} | Y: ${pad(event.y)} ]`);
