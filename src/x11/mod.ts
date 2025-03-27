@@ -2,7 +2,6 @@ import {
   type Library,
   type LoadLibrary,
   type UIEvent,
-  UIEventType,
   type Window,
 } from "../types.ts";
 
@@ -30,6 +29,7 @@ const x11functions = {
   },
 } as const;
 
+const ALL_X_EV_MASKS = 0x1ffffffn;
 enum XEvMask {
   NoEvent = 0,
   KeyPress = 1 << 0,
@@ -59,6 +59,42 @@ enum XEvMask {
   OwnerGrabButton = 1 << 24,
 }
 
+enum XEvType {
+  KeyPress = 2,
+  KeyRelease,
+  ButtonPress,
+  ButtonRelease,
+  MotionNotify,
+  EnterNotify,
+  LeaveNotify,
+  FocusIn,
+  FocusOut,
+  KeymapNotify,
+  Expose,
+  GraphicsExpose,
+  NoExpose,
+  VisibilityNotify,
+  CreateNotify,
+  DestroyNotify,
+  UnmapNotify,
+  MapNotify,
+  MapRequest,
+  ReparentNotify,
+  ConfigureNotify,
+  ConfigureRequest,
+  GravityNotify,
+  ResizeRequest,
+  CirculateNotify,
+  CirculateRequest,
+  PropertyNotify,
+  SelectionClear,
+  SelectionRequest,
+  SelectionNotify,
+  ColormapNotify,
+  ClientMessage,
+  MappingNotify,
+}
+
 class X11Window implements Window {
   readonly id: bigint;
   constructor(readonly lib: X11Library) {
@@ -80,14 +116,7 @@ class X11Window implements Window {
     );
     if (BigInt(window) === 0n) throw new Error("Failed to create window");
 
-    lib.X11.symbols.XSelectInput(
-      lib.display,
-      window,
-      BigInt(
-        XEvMask.Exposure | XEvMask.KeyPress | XEvMask.KeyRelease |
-          XEvMask.StructureNotify | XEvMask.PointerMotion,
-      ),
-    );
+    lib.X11.symbols.XSelectInput(lib.display, window, ALL_X_EV_MASKS);
     lib.X11.symbols.XMapWindow(lib.display, window);
     this.id = BigInt(window);
     this.lib.windows.set(this.id, this);
@@ -114,9 +143,6 @@ class X11Library implements Library {
     if (screen == null) throw new Error("Failed to get default screen");
     this.screen = screen;
   }
-  [Symbol.dispose](): void {
-    this.close();
-  }
   openWindow(): X11Window {
     return new X11Window(this);
   }
@@ -129,21 +155,66 @@ class X11Library implements Library {
     );
     const view = new DataView(this.#event);
     const windowId = view.getBigUint64(32, true);
-    switch (view.getInt32(0, true)) {
-      case 6:
-        return {
-          type: UIEventType.MouseMove,
-          x: view.getInt32(64, true),
-          y: view.getInt32(68, true),
-          window: this.windows.get(windowId) ?? null,
-        };
-    }
-
-    return null;
+    return importEvent(view, this.windows.get(windowId));
+  }
+  [Symbol.dispose](): void {
+    this.close();
   }
   close(): void {
     this.X11.close();
   }
+}
+
+function importEvent(
+  view: DataView<ArrayBuffer>,
+  window?: Window,
+): UIEvent | null {
+  switch (view.getInt32(0, true)) {
+    case XEvType.KeyPress:
+      return {
+        type: "keydown",
+        keycode: 0,
+      };
+    case XEvType.KeyRelease:
+    case XEvType.ButtonPress:
+    case XEvType.ButtonRelease:
+    case XEvType.MotionNotify:
+      return {
+        type: "mousemove",
+        x: view.getInt32(64, true),
+        y: view.getInt32(68, true),
+        window,
+      };
+    case XEvType.EnterNotify:
+    case XEvType.LeaveNotify:
+    case XEvType.FocusIn:
+    case XEvType.FocusOut:
+    case XEvType.KeymapNotify:
+    case XEvType.Expose:
+    case XEvType.GraphicsExpose:
+    case XEvType.NoExpose:
+    case XEvType.VisibilityNotify:
+    case XEvType.CreateNotify:
+    case XEvType.DestroyNotify:
+    case XEvType.UnmapNotify:
+    case XEvType.MapNotify:
+    case XEvType.MapRequest:
+    case XEvType.ReparentNotify:
+    case XEvType.ConfigureNotify:
+    case XEvType.ConfigureRequest:
+    case XEvType.GravityNotify:
+    case XEvType.ResizeRequest:
+    case XEvType.CirculateNotify:
+    case XEvType.CirculateRequest:
+    case XEvType.PropertyNotify:
+    case XEvType.SelectionClear:
+    case XEvType.SelectionRequest:
+    case XEvType.SelectionNotify:
+    case XEvType.ColormapNotify:
+    case XEvType.ClientMessage:
+    case XEvType.MappingNotify:
+  }
+  return null;
 }
 
 export const load: LoadLibrary = () => new X11Library();

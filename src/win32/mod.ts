@@ -2,7 +2,6 @@ import {
   type Library,
   type LoadLibrary,
   type UIEvent,
-  UIEventType,
   type Window,
 } from "../types.ts";
 
@@ -127,11 +126,10 @@ class Win32Library implements Library {
       switch (uMsg) {
         case 0x200: {
           this.#event = {
-            type: UIEventType.MouseMove,
+            type: "mousemove",
             x: Number(BigInt(lParam) & 0xFFFFn),
             y: Number((BigInt(lParam) & 0xFFFF0000n) >> 16n),
-            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))) ??
-              null,
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
           };
           break;
         }
