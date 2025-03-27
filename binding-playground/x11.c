@@ -2,6 +2,6 @@
 #include <X11/Xlib.h>
 
 int main(void) {
-    int len = sizeof(XEvent);
-    printf("XEvent %d\n", len);
+    printf("XEvent %d\n", sizeof(XEvent));
+    printf("Offset: %ld\n", (long)offsetof(XKeyEvent, keycode));
 }
