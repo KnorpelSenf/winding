@@ -71,7 +71,7 @@ class Win32Window implements Window {
       null,
       null,
       null,
-      0,
+      0n,
     );
     if (window == null) throw new Error(lib.getLastError());
     this.id = BigInt(Deno.UnsafePointer.value(window));
@@ -161,7 +161,7 @@ class Win32Library implements Library {
     off += 8;
 
     // hCursor
-    const cursor = this.user32.symbols.LoadCursorW(null, 32512);
+    const cursor = this.user32.symbols.LoadCursorW(null, 32512n);
     // (IDC_ARROW - https://learn.microsoft.com/en-us/windows/win32/menurc/about-cursors)
     if (BigInt(cursor) === 0n) throw new Error(this.getLastError());
     wndClassDv.setBigUint64(off, BigInt(cursor), true);

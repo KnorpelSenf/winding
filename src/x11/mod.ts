@@ -83,8 +83,10 @@ class X11Window implements Window {
     lib.X11.symbols.XSelectInput(
       lib.display,
       window,
-      XEvMask.Exposure | XEvMask.KeyPress | XEvMask.KeyRelease |
-        XEvMask.StructureNotify | XEvMask.PointerMotion,
+      BigInt(
+        XEvMask.Exposure | XEvMask.KeyPress | XEvMask.KeyRelease |
+          XEvMask.StructureNotify | XEvMask.PointerMotion,
+      ),
     );
     lib.X11.symbols.XMapWindow(lib.display, window);
     this.id = BigInt(window);
@@ -105,7 +107,7 @@ class X11Library implements Library {
   readonly windows = new Map<bigint, X11Window>();
   constructor() {
     this.X11 = Deno.dlopen("libX11.so", x11functions);
-    const display = this.X11.symbols.XOpenDisplay(0);
+    const display = this.X11.symbols.XOpenDisplay(0n);
     if (display == null) throw new Error("Failed to open display");
     this.display = display;
     const screen = this.X11.symbols.XDefaultScreenOfDisplay(display);
