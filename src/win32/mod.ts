@@ -55,18 +55,33 @@ const user32functions = {
   },
 } as const;
 
+interface Win32WindowOptions {
+  /** In screen coords or relative to parent window if exists */
+  x: number;
+  /** In screen coords or relative to parent window if exists */
+  y: number;
+  /** Device units */
+  w: number;
+  /** Device units */
+  h: number;
+}
 class Win32Window implements Window {
   readonly id: bigint;
-  constructor(readonly lib: Win32Library, classNameBuf: ArrayBuffer) {
+  constructor(
+    readonly lib: Win32Library,
+    classNameBuf: ArrayBuffer,
+    options: Win32WindowOptions,
+  ) {
+    // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexw
     const window = lib.user32.symbols.CreateWindowExW(
       0,
       classNameBuf,
       null,
       0x10CF0000,
-      0x80000000,
-      0x80000000,
-      0x80000000,
-      0x80000000,
+      options.x,
+      options.y,
+      options.w,
+      options.h,
       null,
       null,
       null,
@@ -82,6 +97,51 @@ class Win32Window implements Window {
   close(): void {
     this.lib.windows.delete(this.id);
   }
+}
+
+/** NOTE For all types see WinUser.h */
+enum WinEvType {
+  WM_MOUSEMOVE = 0x0200,
+  WM_LBUTTONDOWN = 0x0201,
+  WM_LBUTTONUP = 0x0202,
+  WM_LBUTTONDBLCLK = 0x0203,
+  WM_RBUTTONDOWN = 0x0204,
+  WM_RBUTTONUP = 0x0205,
+  WM_RBUTTONDBLCLK = 0x0206,
+  WM_MBUTTONDOWN = 0x0207,
+  WM_MBUTTONUP = 0x0208,
+  WM_MBUTTONDBLCLK = 0x0209,
+  WM_MOUSEWHEEL = 0x020A,
+  WM_XBUTTONDOWN = 0x020B,
+  WM_XBUTTONUP = 0x020C,
+  WM_XBUTTONDBLCLK = 0x020D,
+  WM_MOUSEHWHEEL = 0x020E,
+  WM_MOUSEHOVER = 0x02A1,
+  WM_MOUSELEAVE = 0x02A3,
+
+  WM_CUT = 0x0300,
+  WM_COPY = 0x0301,
+  WM_PASTE = 0x0302,
+  WM_CLEAR = 0x0303,
+  WM_UNDO = 0x0304,
+
+  WM_KEYDOWN = 0x0100,
+  WM_KEYUP = 0x0101,
+  WM_CHAR = 0x0102,
+  WM_DEADCHAR = 0x0103,
+  WM_SYSKEYDOWN = 0x0104,
+  WM_SYSKEYUP = 0x0105,
+  WM_SYSCHAR = 0x0106,
+  WM_SYSDEADCHAR = 0x0107,
+  WM_UNICHAR = 0x0109,
+
+  WM_CREATE = 0x0001,
+  WM_DESTROY = 0x0002,
+  WM_MOVE = 0x0003,
+  WM_SIZE = 0x0005,
+  WM_ACTIVATE = 0x0006,
+  WM_SETFOCUS = 0x0007,
+  WM_KILLFOCUS = 0x0008,
 }
 
 class Win32Library implements Library {
@@ -124,11 +184,155 @@ class Win32Library implements Library {
       result: "usize",
     }, (hWnd, uMsg, wParam, lParam) => {
       switch (uMsg) {
-        case 0x200: {
+        case WinEvType.WM_MOUSEMOVE: {
           this.#event = {
             type: "mousemove",
             x: Number(BigInt(lParam) & 0xFFFFn),
             y: Number((BigInt(lParam) & 0xFFFF0000n) >> 16n),
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_LBUTTONDOWN: {
+          this.#event = {
+            type: "mousedown",
+            button: "left",
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_MBUTTONDOWN: {
+          this.#event = {
+            type: "mousedown",
+            button: "middle",
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_RBUTTONDOWN: {
+          this.#event = {
+            type: "mousedown",
+            button: "right",
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_LBUTTONUP: {
+          this.#event = {
+            type: "mouseup",
+            button: "left",
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_MBUTTONUP: {
+          this.#event = {
+            type: "mouseup",
+            button: "middle",
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_RBUTTONUP: {
+          this.#event = {
+            type: "mouseup",
+            button: "right",
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+
+        case WinEvType.WM_KEYDOWN: {
+          this.#event = {
+            type: "keydown",
+            keycode: Number(wParam),
+            // lParam is a bitmask with the 24th bit being an indicator for extended key press such as right-hand ALT
+            isExtended: Boolean(BigInt(lParam) & BigInt(1 << 24)),
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_SYSKEYDOWN: {
+          // example for syskeydown is pressing an [Alt] key. Not the same as keydown, i.e. [RightCtrl] and [RightAlt]
+          this.#event = {
+            type: "syskeydown",
+            keycode: Number(wParam),
+            // lParam is a bitmask with the 24th bit being an indicator for extended key press such as right-hand ALT
+            isExtended: Boolean(BigInt(lParam) & BigInt(1 << 24)),
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_KEYUP: {
+          this.#event = {
+            type: "keyup",
+            keycode: Number(wParam),
+            // lParam is a bitmask with the 24th bit being an indicator for extended key press such as right-hand ALT
+            isExtended: Boolean(BigInt(lParam) & BigInt(1 << 24)),
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_SYSKEYUP: {
+          // example for syskeydown is releasing an [Alt] key
+          this.#event = {
+            type: "syskeyup",
+            keycode: Number(wParam),
+            // lParam is a bitmask with the 24th bit being an indicator for extended key press such as right-hand ALT
+            isExtended: Boolean(BigInt(lParam) & BigInt(1 << 24)),
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_CHAR: {
+          this.#event = {
+            type: "keychar",
+            key: String.fromCodePoint(Number(wParam)),
+            keycode: Number(wParam),
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_SYSCHAR: {
+          this.#event = {
+            type: "syskeychar",
+            key: String.fromCodePoint(Number(wParam)),
+            keycode: Number(wParam),
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_SETFOCUS: {
+          this.#event = {
+            type: "focus",
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_KILLFOCUS: {
+          this.#event = {
+            type: "blur",
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_MOVE: {
+          this.#event = {
+            type: "move",
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_SIZE: {
+          this.#event = {
+            type: "resize",
+            window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
+          };
+          break;
+        }
+        case WinEvType.WM_DESTROY: {
+          this.#event = {
+            type: "destroy",
             window: this.windows.get(BigInt(Deno.UnsafePointer.value(hWnd))),
           };
           break;
@@ -192,8 +396,13 @@ class Win32Library implements Library {
     if (wndClass == 0) throw new Error(this.getLastError());
   }
   readonly windows = new Map<bigint, Win32Window>();
-  openWindow(): Win32Window {
-    return new Win32Window(this, this.#classNameBuffer);
+  openWindow(
+    x: number = 100,
+    y: number = 100,
+    w: number = 800,
+    h: number = 600,
+  ): Win32Window {
+    return new Win32Window(this, this.#classNameBuffer, { x, y, w, h });
   }
   #msg = new ArrayBuffer(48);
   event(): UIEvent | undefined {

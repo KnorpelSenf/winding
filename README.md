@@ -1,6 +1,7 @@
 # winding
 
-winding is a cross-platform windowing manager that does not need bindings to external libraries.
+winding is a cross-platform windowing manager that does not need bindings to
+external libraries.
 
 Currently, it supports:
 
@@ -24,7 +25,6 @@ using _window = library.openWindow();
 const _event = library.event();
 
 setTimeout(() => {}, 5000);
-
 ```
 
 Run the file with FFI bindings allowed.
