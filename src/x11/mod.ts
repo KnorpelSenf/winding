@@ -171,11 +171,9 @@ function importEvent(
 ): UIEvent | null {
   switch (view.getInt32(0, true)) {
     case XEvType.KeyPress:
-      return {
-        type: "keydown",
-        keycode: 0,
-      };
+      return { type: "keydown", keycode: view.getInt32(84, true) };
     case XEvType.KeyRelease:
+      return { type: "keyup", keycode: view.getInt32(84, true) };
     case XEvType.ButtonPress:
     case XEvType.ButtonRelease:
     case XEvType.MotionNotify:
