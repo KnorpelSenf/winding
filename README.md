@@ -1,7 +1,6 @@
 # winding
 
-winding is a cross-platform windowing manager that does not need bindings to
-external libraries.
+winding is a cross-platform windowing manager that does not need bindings to external libraries.
 
 Currently, it supports:
 
@@ -31,7 +30,7 @@ setTimeout(() => {}, 5000);
 Run the file with FFI bindings allowed.
 
 ```sh
-deno run --unstable-ffi --allow-ffi app.ts
+deno run --allow-ffi app.ts
 ```
 
 Also See [this example](./example.ts).
