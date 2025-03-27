@@ -102,7 +102,7 @@ class Win32Library implements Library {
     parameters: ["pointer", "u32", "usize", "usize"];
     result: "usize";
   }>;
-  #event: UIEvent | null = null;
+  #event: UIEvent | undefined;
   constructor() {
     this.kernel32 = Deno.dlopen("kernel32", kernel32functions);
     this.user32 = Deno.dlopen("user32", user32functions);
@@ -196,7 +196,7 @@ class Win32Library implements Library {
     return new Win32Window(this, this.#classNameBuffer);
   }
   #msg = new ArrayBuffer(48);
-  event(): UIEvent | null {
+  event(): UIEvent | undefined {
     const ptr = Deno.UnsafePointer.of(this.#msg);
     if (this.user32.symbols.PeekMessageW(ptr, null, 0, 0, 1)) {
       this.user32.symbols.TranslateMessage(
@@ -207,7 +207,7 @@ class Win32Library implements Library {
       );
     }
     const event = this.#event;
-    if (event != null) this.#event = null;
+    if (event !== undefined) this.#event = undefined;
     return event;
   }
   #lastErrorBuffer = new ArrayBuffer(4096);

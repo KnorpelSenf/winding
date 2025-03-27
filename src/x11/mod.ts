@@ -147,15 +147,17 @@ class X11Library implements Library {
     return new X11Window(this);
   }
   #event = new ArrayBuffer(192);
-  event(): UIEvent | null {
-    if (this.X11.symbols.XPending(this.display) == 0) return null;
+  // FIXME: does not receive mouse motion for some reason?
+  event(): UIEvent | undefined {
+    if (this.X11.symbols.XPending(this.display) === 0) return undefined;
     this.X11.symbols.XNextEvent(
       this.display,
       Deno.UnsafePointer.of(this.#event),
     );
     const view = new DataView(this.#event);
-    const windowId = view.getBigUint64(32, true);
-    return importEvent(view, this.windows.get(windowId));
+    const event = importEvent(view);
+    if (event === undefined) return undefined;
+    return { ...event, window: this.windows.get(view.getBigUint64(32, true)) };
   }
   [Symbol.dispose](): void {
     this.close();
@@ -165,54 +167,34 @@ class X11Library implements Library {
   }
 }
 
-function importEvent(
-  view: DataView<ArrayBuffer>,
-  window?: Window,
-): UIEvent | null {
-  switch (view.getInt32(0, true)) {
+const BUTTONS = [, "left", "middle", "right"] as const;
+function importEvent(view: DataView<ArrayBuffer>): UIEvent | undefined {
+  const type = view.getInt32(0, true);
+  switch (type) {
     case XEvType.KeyPress:
       return { type: "keydown", keycode: view.getInt32(84, true) };
     case XEvType.KeyRelease:
       return { type: "keyup", keycode: view.getInt32(84, true) };
-    case XEvType.ButtonPress:
-    case XEvType.ButtonRelease:
+    case XEvType.ButtonPress: {
+      const button = BUTTONS[view.getInt32(84, true)];
+      if (button === undefined) return undefined;
+      return { type: "mousedown", button };
+    }
+    case XEvType.ButtonRelease: {
+      const button = BUTTONS[view.getInt32(84, true)];
+      if (button === undefined) return undefined;
+      return { type: "mouseup", button };
+    }
     case XEvType.MotionNotify:
       return {
         type: "mousemove",
         x: view.getInt32(64, true),
         y: view.getInt32(68, true),
-        window,
       };
-    case XEvType.EnterNotify:
-    case XEvType.LeaveNotify:
-    case XEvType.FocusIn:
-    case XEvType.FocusOut:
-    case XEvType.KeymapNotify:
-    case XEvType.Expose:
-    case XEvType.GraphicsExpose:
-    case XEvType.NoExpose:
-    case XEvType.VisibilityNotify:
-    case XEvType.CreateNotify:
-    case XEvType.DestroyNotify:
-    case XEvType.UnmapNotify:
-    case XEvType.MapNotify:
-    case XEvType.MapRequest:
-    case XEvType.ReparentNotify:
-    case XEvType.ConfigureNotify:
-    case XEvType.ConfigureRequest:
-    case XEvType.GravityNotify:
-    case XEvType.ResizeRequest:
-    case XEvType.CirculateNotify:
-    case XEvType.CirculateRequest:
-    case XEvType.PropertyNotify:
-    case XEvType.SelectionClear:
-    case XEvType.SelectionRequest:
-    case XEvType.SelectionNotify:
-    case XEvType.ColormapNotify:
-    case XEvType.ClientMessage:
-    case XEvType.MappingNotify:
+    default:
+      console.log("unknown event type", type);
+      return undefined;
   }
-  return null;
 }
 
 export const load: LoadLibrary = () => new X11Library();

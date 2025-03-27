@@ -29,7 +29,7 @@ export interface Library {
   openWindow(): Window;
   openWindow(x: number, y: number): Window;
   openWindow(x: number, y: number, w: number, h: number): Window;
-  event(): UIEvent | null;
+  event(): UIEvent | undefined;
   close(): void;
 }
 
