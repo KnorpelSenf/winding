@@ -1,25 +1,23 @@
 import { load } from "./mod.ts";
 
-import { UIEventType } from "./src/types.ts";
+async function sleep(ms: number) {
+  await new Promise((r) => setTimeout(r, ms));
+}
 
 using library = load();
-using _window = library.openWindow();
+using _window = library.openWindow(100, 100, 300, 200);
 
 while (true) {
   const event = library.event();
-
-  if (event) console.log(event);
-
-  if (event?.type == "mousemove") {
-    console.log(`mousemove [ X: ${pad(event.x)} | Y: ${pad(event.y)} ]`);
-
-    // Quitting the app when the mouse enters the top-left quadrant, because why not
-    if (event.x > 50 && event.y > 50) {
-      break;
-    }
+  if (event === undefined) {
+    await sleep(10);
+    continue;
   }
-}
 
-function pad(n: number): string {
-  return String(n).padStart(4, "0");
+  console.log(event);
+
+  // Close and quit if q is pressed
+  if (event?.type === "keydown" && event.keycode === 24 /* q */) {
+    break;
+  }
 }
