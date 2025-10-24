@@ -1,9 +1,13 @@
 {
-    "name": "@quoxlabs/winding",
-    "version": "0.0.2",
-    "exports": "./mod.ts",
-    "lock": false,
-    "fmt": {
-        "proseWrap": "preserve"
-    }
+  "name": "@quoxlabs/winding",
+  "version": "0.0.2",
+  "exports": "./mod.ts",
+  "tasks": {
+    "ok": "deno fmt --check && deno lint && deno task check",
+    "check": "deno check mod.ts example.ts"
+  },
+  "fmt": {
+    "proseWrap": "preserve"
+  },
+  "lock": false
 }
