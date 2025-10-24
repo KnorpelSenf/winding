@@ -1,9 +1,4 @@
-import {
-  type Library,
-  type LoadLibrary,
-  type UIEvent,
-  type Window,
-} from "../types.ts";
+import type { Library, LoadLibrary, UIEvent, Window } from "../types.ts";
 
 const kernel32functions = {
   GetModuleHandleW: { parameters: ["pointer"], result: "usize" },

@@ -1,9 +1,4 @@
-import {
-  type Library,
-  type LoadLibrary,
-  type UIEvent,
-  type Window,
-} from "../types.ts";
+import type { Library, LoadLibrary, UIEvent, Window } from "../types.ts";
 
 const x11functions = {
   XOpenDisplay: { parameters: ["usize"], result: "pointer" },
@@ -30,7 +25,7 @@ const x11functions = {
 } as const;
 
 const ALL_X_EV_MASKS = 0x1ffffffn;
-enum XEvMask {
+enum _XEvMask {
   NoEvent = 0,
   KeyPress = 1 << 0,
   KeyRelease = 1 << 1,
