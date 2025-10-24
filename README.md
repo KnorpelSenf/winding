@@ -1,10 +1,11 @@
 # winding
 
-winding is a cross-platform windowing manager that does not need bindings to external libraries.
+winding is a cross-platform windowing library that does not need bindings to any external binaries (except for the system itself).
 
 Currently, it supports:
 
-- X11
+- Windows
+- Linux (X11)
 
 Contributions are welcome!
 
@@ -14,7 +15,7 @@ Create `app.ts` with the following content.
 
 ```ts
 // app.ts
-import { load } from "https://deno.land/x/winding/mod.ts";
+import { load } from "jsr:@quoxlabs/winding";
 
 using library = load();
 using _window = library.openWindow();
@@ -24,7 +25,6 @@ using _window = library.openWindow();
 const _event = library.event();
 
 setTimeout(() => {}, 5000);
-
 ```
 
 Run the file with FFI bindings allowed.
